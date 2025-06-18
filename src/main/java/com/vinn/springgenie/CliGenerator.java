@@ -13,12 +13,14 @@ import java.util.Scanner;
  * project with a three-layer architecture: Presentation (Controller),
  * Business (Service), and Data Access (Repository, Entity).
  *
- * This tool prompts the user for a project name, a base package, and a module name,
- * then generates the corresponding Java source files and a Maven pom.xml.
+ * This tool prompts the user for project details, including configuration
+ * and database preferences, then generates the corresponding Java source
+ * files, a Maven pom.xml, and the application configuration file.
  */
 public class CliGenerator {
 
     private static final String SRC_MAIN_JAVA = "src/main/java";
+    private static final String SRC_MAIN_RESOURCES = "src/main/resources";
 
     public static void main(String[] args) {
         final Scanner scanner = new Scanner(System.in);
@@ -27,15 +29,55 @@ public class CliGenerator {
         System.out.println("----------------------------------------------");
 
         System.out.print("Enter Project Name (e.g., my-app): ");
-        String projectName = scanner.nextLine();
+        final String projectName = scanner.nextLine();
 
         System.out.print("Enter Base Package (e.g., com.example.myapp): ");
-        String basePackage = scanner.nextLine().toLowerCase();
+        final String basePackage = scanner.nextLine().toLowerCase();
 
         System.out.print("Enter Module Name (e.g., Product, User - singular, PascalCase): ");
-        String moduleName = scanner.nextLine();
+        final String moduleName = scanner.nextLine();
 
-        scanner.close();
+        System.out.print("Choose Build Tool (maven/gradle) [default: maven]: ");
+            String buildTool = scanner.nextLine().trim().toLowerCase();
+        if (buildTool.isEmpty()) {
+            buildTool = "maven";
+        }
+
+        System.out.print("Choose config file type (properties/yml) [default: properties]: ");
+        String configFileType = scanner.nextLine().trim();
+        if (configFileType.isEmpty()) {
+            configFileType = "properties";
+        }
+
+        System.out.print("Choose Database Type (h2/mysql/postgresql) [default: h2]: ");
+        String databaseType = scanner.nextLine().trim().toLowerCase();
+        if (databaseType.isEmpty()) {
+            databaseType = "h2";
+        }
+
+        String databaseName = "";
+        String databaseDialect = "";
+        boolean createDatabaseIfNotExist = false;
+        String dbUsername = "";
+        String dbPassword = "";
+
+        if (!databaseType.equals("h2")) {
+            System.out.print("Enter Database Name (e.g., mydb): ");
+            databaseName = scanner.nextLine().trim();
+
+            System.out.print("Do you want Spring Boot to create the database if it doesn't exist? (yes/no) [default: no]: ");
+            String createDbChoice = scanner.nextLine().trim().toLowerCase();
+            if (createDbChoice.equals("yes")) {
+                createDatabaseIfNotExist = true;
+                System.out.print("Enter Database Username [optional, default varies]: ");
+                dbUsername = scanner.nextLine().trim();
+                System.out.print("Enter Database Password [optional, default varies]: ");
+                dbPassword = scanner.nextLine().trim();
+            }
+
+            System.out.print("Enter Hibernate Dialect (e.g., org.hibernate.dialect.MySQLDialect) [optional]: ");
+            databaseDialect = scanner.nextLine().trim();
+        }
 
         final String pascalCaseModuleName = toPascalCase(moduleName);
         final String camelCaseModuleName = toCamelCase(moduleName);
@@ -47,8 +89,11 @@ public class CliGenerator {
             final Path projectRootPath = Paths.get(projectName);
             Files.createDirectories(projectRootPath);
 
-            // Generate pom.xml
-            generatePomXml(projectRootPath, projectName, basePackage);
+            if (buildTool.equalsIgnoreCase("gradle")) {
+                generateGradleBuildFile(projectRootPath, projectName, basePackage, databaseType);
+            } else {
+                generatePomXml(projectRootPath, projectName, basePackage, databaseType);
+            }
 
             // Create Java source directories
             final Path javaBasePath = projectRootPath.resolve(SRC_MAIN_JAVA).resolve(basePackage.replace(".", File.separator));
@@ -65,13 +110,20 @@ public class CliGenerator {
             generateRepositoryClass(basePackage, pascalCaseModuleName, moduleBasePath);
             generateServiceClass(basePackage, pascalCaseModuleName, moduleBasePath);
             generateControllerClass(basePackage, pascalCaseModuleName, moduleBasePath);
+            generateApplicationConfigFile(projectRootPath, configFileType, databaseType, databaseName, databaseDialect, createDatabaseIfNotExist, dbUsername, dbPassword);
 
             System.out.println("\nProject '" + projectName + "' generated successfully!");
             System.out.println("Navigate to the project directory: cd " + projectName);
-            System.out.println("Then you can build and run it using Maven: mvn spring-boot:run");
+            if (buildTool.equalsIgnoreCase("gradle")) {
+                System.out.println("Then you can build and run it using Gradle: gradle bootRun");
+            } else {
+                System.out.println("Then you can build and run it using Maven: mvn spring-boot:run");
+            }
 
         } catch (IOException e) {
             System.err.println("Error generating project: " + e.getMessage());
+        } finally {
+            scanner.close();
         }
     }
 
@@ -138,10 +190,25 @@ public class CliGenerator {
      * @param basePackage     The base package of the project.
      * @throws IOException If an I/O error occurs.
      */
-    private static void generatePomXml(final Path projectRootPath, final  String projectName, final  String basePackage) throws IOException {
+    private static void generatePomXml(final Path projectRootPath, final  String projectName, final  String basePackage, final String databaseType) throws IOException {
         final Path pomPath = projectRootPath.resolve("pom.xml");
-        final String content = PomXmlGenerator.generate(projectName, basePackage);
+        final String content = PomXmlGenerator.generate(projectName, basePackage, databaseType);
         writeFile(pomPath, content);
+    }
+
+    /**
+     * Generates the build.gradle file with the appropriate database dependency.
+     *
+     * @param projectRootPath The root path of the project.
+     * @param projectName     The name of the project.
+     * @param basePackage     The base package of the project.
+     * @param databaseType    The selected database type (h2, mysql, postgresql).
+     * @throws IOException If an I/O error occurs.
+     */
+    private static void generateGradleBuildFile(final Path projectRootPath, final String projectName, final String basePackage, final String databaseType) throws IOException {
+        final Path buildGradlePath = projectRootPath.resolve("build.gradle");
+        final String content = GradleBuildFileGenerator.generate(projectName, basePackage, databaseType);
+        writeFile(buildGradlePath, content);
     }
 
     /**
@@ -211,6 +278,29 @@ public class CliGenerator {
     private static void generateControllerClass(final String basePackage, final  String pascalCaseModuleName, final  Path moduleBasePath) throws IOException {
         final Path filePath = moduleBasePath.resolve("controller").resolve(pascalCaseModuleName + "Controller.java");
         final String content = ControllerClassGenerator.generate(basePackage, pascalCaseModuleName);
+        writeFile(filePath, content);
+    }
+
+    /**
+     * Generates the application configuration file (application.properties or application.yml).
+     *
+     * @param projectRootPath The root path of the project.
+     * @param configFileType  The chosen config file type (properties/yml).
+     * @param databaseType    The chosen database type.
+     * @param databaseName    The database name.
+     * @param databaseDialect The Hibernate dialect (optional).
+     * @param createDatabaseIfNotExist True if the database should be created if it doesn't exist.
+     * @param username        The database username (optional).
+     * @param password        The database password (optional).
+     * @throws IOException If an I/O error occurs.
+     */
+    private static void generateApplicationConfigFile(final Path projectRootPath, final String configFileType, final String databaseType, final String databaseName, final String databaseDialect, final boolean createDatabaseIfNotExist, final String username, final String password) throws IOException {
+        final Path resourcesPath = projectRootPath.resolve(SRC_MAIN_RESOURCES);
+        Files.createDirectories(resourcesPath); // Ensure resources directory exists
+
+        final String fileName = "application." + configFileType;
+        final Path filePath = resourcesPath.resolve(fileName);
+        final String content = ApplicationConfigGenerator.generate(configFileType, databaseType, databaseName, databaseDialect, createDatabaseIfNotExist, username, password);
         writeFile(filePath, content);
     }
 }

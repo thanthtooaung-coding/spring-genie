@@ -7,13 +7,82 @@ package com.vinn.springgenie;
 public class PomXmlGenerator {
 
     /**
-     * Generates the `pom.xml` content for a Spring Boot project.
+     * Generates the `pom.xml` content for a Spring Boot project,
+     * including the appropriate database driver dependency.
      *
      * @param projectName The name of the project.
      * @param basePackage The base package for the project's artifacts.
+     * @param databaseType The selected database type (h2, mysql, postgresql).
      * @return A string containing the `pom.xml` content.
      */
-    public static String generate(String projectName, String basePackage) {
+    public static String generate(final String projectName, final String basePackage, final String databaseType) {
+        StringBuilder dependencies = new StringBuilder();
+
+        dependencies.append("""
+                        <dependency>
+                            <groupId>org.springframework.boot</groupId>
+                            <artifactId>spring-boot-starter-web</artifactId>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.springframework.boot</groupId>
+                            <artifactId>spring-boot-starter-data-jpa</artifactId>
+                        </dependency>
+                """);
+
+        switch (databaseType.toLowerCase()) {
+            case "h2":
+                dependencies.append("""
+                        <dependency>
+                            <groupId>com.h2database</groupId>
+                            <artifactId>h2</artifactId>
+                            <scope>runtime</scope>
+                        </dependency>
+                        """);
+                break;
+            case "mysql":
+                dependencies.append("""
+                        <dependency>
+                            <groupId>mysql</groupId>
+                            <artifactId>mysql-connector-java</artifactId>
+                            <version>8.0.33</version> <!-- Use a compatible version -->
+                            <scope>runtime</scope>
+                        </dependency>
+                        """);
+                break;
+            case "postgresql":
+                dependencies.append("""
+                        <dependency>
+                            <groupId>org.postgresql</groupId>
+                            <artifactId>postgresql</artifactId>
+                            <scope>runtime</scope>
+                        </dependency>
+                        """);
+                break;
+            default:
+                System.err.println("Warning: Unknown database type specified. No specific database dependency added.");
+                dependencies.append("""
+                        <dependency>
+                            <groupId>com.h2database</groupId>
+                            <artifactId>h2</artifactId>
+                            <scope>runtime</scope>
+                        </dependency>
+                        """);
+                break;
+        }
+
+        dependencies.append("""
+                        <dependency>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <optional>true</optional>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.springframework.boot</groupId>
+                            <artifactId>spring-boot-starter-test</artifactId>
+                            <scope>test</scope>
+                        </dependency>
+                """);
+
         return """
                 <?xml version="1.0" encoding="UTF-8"?>
                 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -34,29 +103,7 @@ public class PomXmlGenerator {
                         <java.version>17</java.version> <!-- Recommended Java version for Spring Boot 3 -->
                     </properties>
                     <dependencies>
-                        <dependency>
-                            <groupId>org.springframework.boot</groupId>
-                            <artifactId>spring-boot-starter-web</artifactId>
-                        </dependency>
-                        <dependency>
-                            <groupId>org.springframework.boot</groupId>
-                            <artifactId>spring-boot-starter-data-jpa</artifactId>
-                        </dependency>
-                        <dependency>
-                            <groupId>com.h2database</groupId>
-                            <artifactId>h2</artifactId>
-                            <scope>runtime</scope>
-                        </dependency>
-                        <dependency>
-                            <groupId>org.projectlombok</groupId>
-                            <artifactId>lombok</artifactId>
-                            <optional>true</optional>
-                        </dependency>
-                        <dependency>
-                            <groupId>org.springframework.boot</groupId>
-                            <artifactId>spring-boot-starter-test</artifactId>
-                            <scope>test</scope>
-                        </dependency>
+                        %s
                     </dependencies>
 
                     <build>
@@ -77,6 +124,6 @@ public class PomXmlGenerator {
                     </build>
 
                 </project>
-                """.formatted(basePackage, projectName, projectName, projectName);
+                """.formatted(basePackage, projectName, projectName, projectName, dependencies.toString());
     }
 }
