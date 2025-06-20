@@ -232,7 +232,7 @@ We welcome contributions! Here's how you can help:
 
 ## 📝 Roadmap
 
-- [✅] Implement Swagger UI
+- [x] Implement Swagger UI
 - [ ] Support for additional databases (MongoDB, Redis)
 - [ ] Web interface for project generation
 - [ ] Docker containerization support
