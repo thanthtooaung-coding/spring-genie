@@ -24,6 +24,13 @@ public class ControllerClassGenerator {
 
                 import %s.%s.entity.%s;
                 import %s.%s.service.%sService;
+                import io.swagger.v3.oas.annotations.Operation;
+                import io.swagger.v3.oas.annotations.Parameter;
+                import io.swagger.v3.oas.annotations.media.Content;
+                import io.swagger.v3.oas.annotations.media.Schema;
+                import io.swagger.v3.oas.annotations.responses.ApiResponse;
+                import io.swagger.v3.oas.annotations.responses.ApiResponses;
+                import io.swagger.v3.oas.annotations.tags.Tag;
                 import org.springframework.http.HttpStatus;
                 import org.springframework.http.ResponseEntity;
                 import org.springframework.web.bind.annotation.*;
@@ -35,6 +42,7 @@ public class ControllerClassGenerator {
                  * Handles incoming HTTP requests and interacts with the %sService
                  * to perform operations on %s entities.
                  */
+                @Tag(name = "%s Module", description = "Endpoints for managing %s")
                 @RestController
                 @RequestMapping("/api/%s") // Base path for this module's API endpoints
                 public class %sController {
@@ -56,6 +64,13 @@ public class ControllerClassGenerator {
                      *
                      * @return A ResponseEntity containing a list of all %s and HTTP status OK.
                      */
+                    @Operation(summary = "Retrieve all %s", description = "Fetches a list of all %s entities.")
+                    @ApiResponses(
+                            @ApiResponse(responseCode = "200", description = "Successfully retrieved list of %s",
+                                    content = { @Content(mediaType = "application/json",
+                                        schema = @Schema(implementation = %s.class))
+                                    })
+                            )
                     @GetMapping
                     public ResponseEntity<List<%s>> getAll%s() {
                         final List<%s> %s = this.%s.findAll();
@@ -69,6 +84,13 @@ public class ControllerClassGenerator {
                      * @return A ResponseEntity containing the %s if found (HTTP status OK),
                      * or HTTP status NOT_FOUND if not found.
                      */
+                     @Operation(summary = "Retrieve a %s by ID", description = "Fetches the details of a specific %s by its ID.")
+                     @ApiResponses(value = {
+                         @ApiResponse(responseCode = "200", description = "Found the %s",
+                             content = { @Content(mediaType = "application/json",
+                                     schema = @Schema(implementation = %s.class)) }),
+                         @ApiResponse(responseCode = "404", description = "%s not found", content = @Content)
+                     })
                     @GetMapping("/{id}")
                     public ResponseEntity<%s> get%sById(@PathVariable final  Long id) {
                         return this.%s.findById(id)
@@ -82,6 +104,13 @@ public class ControllerClassGenerator {
                      * @param %s The %s object to create, sent in the request body.
                      * @return A ResponseEntity containing the created %s and HTTP status CREATED.
                      */
+                     @Operation(summary = "Create a new %s", description = "Creates a new %s with the provided details.")
+                     @ApiResponses(value = {
+                         @ApiResponse(responseCode = "201", description = "%s created successfully",
+                             content = { @Content(mediaType = "application/json",
+                                     schema = @Schema(implementation = %s.class)) }),
+                         @ApiResponse(responseCode = "400", description = "Invalid %s details provided", content = @Content)
+                     })
                     @PostMapping
                     public ResponseEntity<%s> create%s(@RequestBody final  %s %s) {
                         final %s saved%s = this.%s.save(%s);
@@ -96,6 +125,14 @@ public class ControllerClassGenerator {
                      * @return A ResponseEntity containing the updated %s if found (HTTP status OK),
                      * or HTTP status NOT_FOUND if the original %s is not found.
                      */
+                     @Operation(summary = "Update an existing %s", description = "Updates an existing %s with the provided details.")
+                     @ApiResponses(value = {
+                         @ApiResponse(responseCode = "200", description = "%s updated successfully",
+                             content = { @Content(mediaType = "application/json",
+                                     schema = @Schema(implementation = %s.class)) }),
+                         @ApiResponse(responseCode = "404", description = "%s not found", content = @Content),
+                         @ApiResponse(responseCode = "400", description = "Invalid %s details provided", content = @Content)
+                     })
                     @PutMapping("/{id}")
                     public ResponseEntity<%s> update%s(@PathVariable final Long id, @RequestBody final %s %s) {
                         return this.%s.findById(id)
@@ -116,6 +153,11 @@ public class ControllerClassGenerator {
                      * @return A ResponseEntity with HTTP status NO_CONTENT if successful,
                      * or HTTP status NOT_FOUND if the %s does not exist.
                      */
+                     @Operation(summary = "Delete a %s", description = "Deletes a %s by its ID.")
+                     @ApiResponses(value = {
+                         @ApiResponse(responseCode = "204", description = "%s deleted successfully", content = @Content),
+                         @ApiResponse(responseCode = "404", description = "%s not found", content = @Content)
+                     })
                     @DeleteMapping("/{id}")
                     public ResponseEntity<Void> delete%s(@PathVariable final Long id) {
                         if (%s.findById(id).isPresent()) {
@@ -130,6 +172,7 @@ public class ControllerClassGenerator {
                 basePackage, camelCaseModuleName, pascalCaseModuleName, // 3, 4, 5
                 basePackage, camelCaseModuleName, pascalCaseModuleName, // 6, 7, 8
                 pascalCaseModuleName, pascalCaseModuleName, pascalCaseModuleName, // 9, 10, 11 (Class Javadoc)
+                pascalCaseModuleName, pluralCamelCaseModuleName, // (Swagger @Tag)
                 pluralCamelCaseModuleName, pascalCaseModuleName, // 12, 13 (RequestMapping and Class name)
                 pascalCaseModuleName, serviceVarName, // 14, 15 (private final)
                 pascalCaseModuleName, pascalCaseModuleName, // 16, 17 (Constructor Javadoc 1)
@@ -139,18 +182,24 @@ public class ControllerClassGenerator {
                 serviceVarName, serviceVarName, // 24, 25 (this.service = service)
                 pascalCaseModuleName, // 26 (getAll Javadoc 1)
                 pluralModuleName, // 27 (getAll Javadoc 2)
+                pluralCamelCaseModuleName, pluralCamelCaseModuleName, // (Swagger @Operation for getAll)
+                pluralCamelCaseModuleName, pascalCaseModuleName, // (@ApiResponse for getAll)
                 pascalCaseModuleName, pluralModuleName, // 28, 29 (getAll method signature)
                 pascalCaseModuleName, pluralCamelCaseModuleName, serviceVarName, // 30, 31, 32 (List<Product> products = productService.findAll();)
                 pluralCamelCaseModuleName, // 33 (return new ResponseEntity<>(products, HttpStatus.OK);)
                 pascalCaseModuleName, // 34 (getById Javadoc 1)
                 pascalCaseModuleName, // 35 (getById Javadoc 2)
                 pascalCaseModuleName, // 36 (getById Javadoc 3)
+                camelCaseModuleName, camelCaseModuleName, // (Swagger @Operation getById)
+                pascalCaseModuleName, pascalCaseModuleName, pascalCaseModuleName, // (@ApiResponse for getById)
                 pascalCaseModuleName, pascalCaseModuleName, // 37, 38 (getById method signature)
                 serviceVarName, // 39 (getById method body - findById)
                 camelCaseModuleName, camelCaseModuleName, // 40, 41 (getById method body - map lambda param and return)
                 camelCaseModuleName, // 42 (create Javadoc 1)
                 camelCaseModuleName, pascalCaseModuleName, // 43, 44 (create Javadoc param)
                 pascalCaseModuleName, // 45 (create Javadoc return)
+                camelCaseModuleName, camelCaseModuleName, // (Swagger @Operation create)
+                pascalCaseModuleName, pascalCaseModuleName, camelCaseModuleName, // (@ApiResponse for create)
                 pascalCaseModuleName, pascalCaseModuleName, pascalCaseModuleName, camelCaseModuleName, // 46, 47, 48, 49 (create method signature)
                 pascalCaseModuleName, camelCaseModuleName, serviceVarName, camelCaseModuleName, // 50, 51, 52, 53 (create method body - save)
                 camelCaseModuleName, // 54 (create method body - return)
@@ -159,6 +208,8 @@ public class ControllerClassGenerator {
                 camelCaseModuleName, pascalCaseModuleName, // 57, 58 (update Javadoc param)
                 pascalCaseModuleName, // 59 (update Javadoc return 1)
                 pascalCaseModuleName, // 60 (update Javadoc return 2)
+                camelCaseModuleName, camelCaseModuleName, // (Swagger @Operation update)
+                pascalCaseModuleName, pascalCaseModuleName, pascalCaseModuleName, camelCaseModuleName, // (Swagger @Operation update)
                 pascalCaseModuleName, pascalCaseModuleName, pascalCaseModuleName, camelCaseModuleName, // 61, 62, 63, 64 (update method signature)
                 serviceVarName, // 65 (update method body - findById)
                 pascalCaseModuleName, // 66 (update method body - map lambda param)
@@ -169,6 +220,8 @@ public class ControllerClassGenerator {
                 pascalCaseModuleName, // 76 (delete Javadoc 1)
                 pascalCaseModuleName, // 77 (delete Javadoc 2)
                 pascalCaseModuleName, // 78 (delete Javadoc 3)
+                camelCaseModuleName, camelCaseModuleName, // (Swagger @Operation delete)
+                pascalCaseModuleName, pascalCaseModuleName, // (Swagger @Operation delete)
                 pascalCaseModuleName, // 79 (delete method signature)
                 serviceVarName, // 80 (delete method body - findById)
                 serviceVarName); // 81 (delete method body - deleteById)

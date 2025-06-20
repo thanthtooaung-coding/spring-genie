@@ -99,6 +99,7 @@ public class CliGenerator {
             final Path javaBasePath = projectRootPath.resolve(SRC_MAIN_JAVA).resolve(basePackage.replace(".", File.separator));
             final Path moduleBasePath = javaBasePath.resolve(camelCaseModuleName);
 
+            Files.createDirectories(moduleBasePath.resolve("config"));
             Files.createDirectories(moduleBasePath.resolve("controller"));
             Files.createDirectories(moduleBasePath.resolve("service"));
             Files.createDirectories(moduleBasePath.resolve("repository"));
@@ -106,6 +107,7 @@ public class CliGenerator {
 
             // Generate Java files
             generateApplicationClass(basePackage, pascalCaseModuleName, moduleBasePath);
+            generateOpenApiConfig(basePackage, pascalCaseModuleName, moduleBasePath);
             generateEntityClass(basePackage, pascalCaseModuleName, moduleBasePath);
             generateRepositoryClass(basePackage, pascalCaseModuleName, moduleBasePath);
             generateServiceClass(basePackage, pascalCaseModuleName, moduleBasePath);
@@ -222,6 +224,20 @@ public class CliGenerator {
     private static void generateApplicationClass(final String basePackage, final  String pascalCaseModuleName, final  Path moduleBasePath) throws IOException {
         final Path filePath = moduleBasePath.resolve("Application.java");
         final String content = ApplicationClassGenerator.generate(basePackage, pascalCaseModuleName);
+        writeFile(filePath, content);
+    }
+
+    /**
+     * Generates the OpenAPI configuration class.
+     *
+     * @param basePackage The base package of the application.
+     * @param pascalCaseModuleName The module name in PascalCase.
+     * @param moduleBasePath       The base path for the module's Java files.
+     * @throws IOException If an I/O error occurs.
+     */
+    private static void generateOpenApiConfig(final String basePackage, final String pascalCaseModuleName, final Path moduleBasePath) throws IOException {
+        final Path filePath = moduleBasePath.resolve("config").resolve("OpenApiConfig.java");
+        final String content = OpenApiConfigGenerator.generate(basePackage, pascalCaseModuleName);
         writeFile(filePath, content);
     }
 

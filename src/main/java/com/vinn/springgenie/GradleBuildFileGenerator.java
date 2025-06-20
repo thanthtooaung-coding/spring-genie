@@ -49,6 +49,9 @@ public class GradleBuildFileGenerator {
             testImplementation 'org.springframework.boot:spring-boot-starter-test'
             """);
 
+        dependencies.append("""
+            implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
+            """);
 
         return """
                 plugins {
