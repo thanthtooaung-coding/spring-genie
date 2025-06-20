@@ -96,6 +96,7 @@ Enter Database Password [optional, default varies]: password123
 Generating project structure for module: Task...
 Generated: pom.xml
 Generated: Application.java
+Generated: OpenApiConfig.java
 Generated: Task.java
 Generated: TaskRepository.java
 Generated: TaskService.java
@@ -119,6 +120,8 @@ your-project/
 │       │   └── com/example/yourapp/
 │       │       └── yourmodule/
 │       │           ├── Application.java          # Main Spring Boot application
+│       │           ├── config/
+│       │           │   └── OpenApiConfig.java
 │       │           ├── controller/
 │       │           │   └── YourModuleController.java
 │       │           ├── service/
@@ -229,7 +232,7 @@ We welcome contributions! Here's how you can help:
 
 ## 📝 Roadmap
 
-- [ ] Implement Swagger UI
+- [✅] Implement Swagger UI
 - [ ] Support for additional databases (MongoDB, Redis)
 - [ ] Web interface for project generation
 - [ ] Docker containerization support
